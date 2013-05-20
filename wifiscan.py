@@ -54,7 +54,7 @@ if __name__ == "__main__":
         exit
     print "Econding Parameters"
     params = parameters(access_points)
-    url = <YOUR URL HERE>
+    url = "http://web.engr.oregonstate.edu/~silasm/CS419/API.php?%s"
 
     f = urllib.urlopen(url %params)
     print "Retrieving JSON"

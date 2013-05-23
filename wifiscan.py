@@ -1,5 +1,5 @@
-#OSX Wifi Scanner
-
+#OSX and Windows Wifi Scanner
+#Created by Matt Silas
 
 import json, sys
 import xml.etree.ElementTree
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         
     print "Econding Parameters"
     params = parameters(access_points)
-    url = "http://web.engr.oregonstate.edu/~silasm/CS419/API.php?%s"
+    url = "INSERT HERE"
 
     f = urllib.urlopen(url %params)
     print "Retrieving JSON"

@@ -10,9 +10,4 @@ The API returns a JSON object. It is merely for demonstartion purposes and provi
 TO-DO
 ============
 
-Improve Windows parsing or change OSX parsing to adhere to DRY principle
-
-NOTE
-============
-
-Feel free to add Linux (iwlist -scanning) support and I will accept accept the merge after review, however I will not be adding a Linux scanning utility.
+Improve Windows parsing add Linux someday.

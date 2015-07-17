@@ -1,39 +1,62 @@
 #OSX and Windows Wifi Scanner
 #Created by Matt Silas
-
-import json, sys
-import xml.etree.ElementTree
-import urllib, webbrowser
+import sys
+import plistlib
+import json
+import urllib
+import logging
+import subprocess
+import re
 
 #Runs OSX Airport utility with scan and xml out flags set
 def find_access_points_osx():
     from commands import getoutput
     scan = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -s -x'   
-    root = xml.etree.ElementTree.fromstring(getoutput(scan))
-    output = root.getchildren()[0]
+    root = getoutput(scan)
+    output = plistlib.readPlistFromString(root)
+    info = {}
+    for node in output:
+        temp_dict = {}
+        temp_dict = parse_plist_output(node)
+        for k, v in temp_dict.iteritems():
+            if k in info:
+                if isinstance(info[k], list):
+                    info[k] = info[k] + [v]
+                else:
+                    info[k] = [info[k], v]
+            else:
+                info[k] = v
 
-    access_points = {}
+    return info
 
-    for access_point in output:
-        # 1st string is MAC address
-        address = access_point.find("string").text
-        # 2nd string is SSID
-        #ssid = access_point.findall("string")[1].text
-        # 8th integer is signal strength
-        strength = abs(int(access_point.findall("integer")[7].text))
-        access_points[address] = strength
+def parse_plist_output(node):
+    return_val = {}
+    try:
+        for key, value in node.iteritems():
+            if isinstance(value, dict):
+                return_val.update(parse_plist_output(value))
+            else:
+                if key in return_val:
+                    if isinstance(return_val[key], list):
+                        return_val[key] = return_val[key] + [value]
+                    else:
+                        return_val[key] = [return_val[key], value]
+                else:
+                    return_val[key] = value
+    except Exception as e:
+        logging.exception("key: %s, value: %s", (key, value))
 
-    return access_points
+    return return_val
 
 #Runs win32 netsh utility and searches for BSSID and RSSI based on regex    
 def find_access_points_win():   
     scan = 'cmd.exe /c netsh wlan show network mode=Bssid | findstr "BSSID Signal"'
-    root=subprocess.check_output(scan)
+    root = subprocess.check_output(scan)
     ap_list = root.decode()
     mac_address = '([a-fA-F0-9]{1,2}[:]?){6}'
     c = re.compile(mac_address).finditer(ap_list)
-    access_points={}
-    signals =get_sig_strength_win(ap_list)
+    access_points = {}
+    signals = get_sig_strength_win(ap_list)
     x=0
     if c:
         for y in c:
@@ -59,11 +82,12 @@ def xml_to_json(signals):
 #Encodes the the access point data as parameters to send data
 #to the URL as a GET request.
 def parameters(signals):
-    data = {'MAC':[], 'RSSI':[]}
-    for address, rssi in signals.items():
-        data["MAC"].append(address)
-        data["RSSI"].append(rssi)
-    return urllib.urlencode(data,True).replace("%3A",":")
+    data = {'BSSID' : [], 'RSSI' : []}
+    keys = ['BSSID', 'RSSI']
+    for key in keys:
+        data[key].append(signals[key])
+
+    return urllib.urlencode(data, True).replace("%3A", ":")
 
 if __name__ == "__main__":
     print "Finding Access Points"
@@ -73,7 +97,7 @@ if __name__ == "__main__":
         print "no linux support currently"
         exit
     if sys.platform == 'win32':
-        access_points = find_access_points_win32()
+        access_points = find_access_points_win()
         
     print "Econding Parameters"
     params = parameters(access_points)
@@ -82,6 +106,3 @@ if __name__ == "__main__":
     f = urllib.urlopen(url %params)
     print "Retrieving JSON"
     print f.read()
-    #webbrowser.open_new_tab(url % params)
-    
-     

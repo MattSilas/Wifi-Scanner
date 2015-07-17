@@ -1,5 +1,5 @@
-#OSX and Windows Wifi Scanner
-#Created by Matt Silas
+# OSX and Windows Wifi Scanner
+# Created by Matt Silas
 import sys
 import plistlib
 import json
@@ -8,15 +8,20 @@ import logging
 import subprocess
 import re
 
-#Runs OSX Airport utility with scan and xml out flags set
 def find_access_points_osx():
+    """
+    Parses the output from the airport utility into a single dictionary
+    Airport's output is a plist; a list of dictionaries
+    Keys can repeat for each plist node, so the values are appended into a list, to avoid overwriting
+    Updated for OS X 10.10
+    :return: dictionary with output from airport scan
+    """
     from commands import getoutput
     scan = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -s -x'   
     root = getoutput(scan)
     output = plistlib.readPlistFromString(root)
     info = {}
     for node in output:
-        temp_dict = {}
         temp_dict = parse_plist_output(node)
         for k, v in temp_dict.iteritems():
             if k in info:
@@ -26,10 +31,16 @@ def find_access_points_osx():
                     info[k] = [info[k], v]
             else:
                 info[k] = v
-
     return info
 
 def parse_plist_output(node):
+    """
+    Parses a plist node, which can contain nested dictionaries
+    The nested items are pulled out into a single k, v pair.
+    If the same key is present in the dictionary, create a list of values
+    :param node: dictionary
+    :return: dictionary
+    """
     return_val = {}
     try:
         for key, value in node.iteritems():
@@ -70,19 +81,15 @@ def get_sig_strength_win(ap_list):
     c = re.findall(sig_strength,ap_list)
     if c:
         return c
-    
-#Converts the Airport XML to JSON, currently not utilized
-def xml_to_json(signals):
-    data = {"ap": []}
-    for address, rssi in signals.items():
-        ap = {"mac_address": address, "values": rssi}
-        data["ap"].append(ap)
-    return json.JSONEncoder().encode(data)
 
-#Encodes the the access point data as parameters to send data
-#to the URL as a GET request.
+
 def parameters(signals):
-    data = {'BSSID' : [], 'RSSI' : []}
+    """
+    Gets the RSSI and BSSID from the signals
+    :param signals: dictionary from wifi scan
+    :return: url encoded data request
+    """
+    data = {'BSSID': [], 'RSSI': []}
     keys = ['BSSID', 'RSSI']
     for key in keys:
         data[key].append(signals[key])

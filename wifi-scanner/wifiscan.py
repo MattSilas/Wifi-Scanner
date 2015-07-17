@@ -2,7 +2,6 @@
 # Created by Matt Silas
 import sys
 import plistlib
-import json
 import urllib
 import logging
 import subprocess
@@ -55,7 +54,7 @@ def parse_plist_output(node):
                 else:
                     return_val[key] = value
     except Exception as e:
-        logging.exception("key: %s, value: %s", (key, value))
+        logging.exception("%s key: %s, value: %s", (e, key, value))
 
     return return_val
 
